@@ -1,0 +1,33 @@
+[package]
+name = "outer-frontiers"
+version = "0.1.0"
+license = "MIT OR Apache-2.0"
+authors = ["Stepan Kizim <stsiapan.kizim@gmail.com>"]
+edition = "2021"
+
+# Enable max optimizations for dependencies, making debug build mach faster
+[profile.dev.package."*"]
+opt-level = 3
+
+[dependencies]
+# Keep only what is really used to keep binary small and compilation fast
+bevy = { version = "0.11", default-features = false, features = [
+  # Core 3D features
+  "bevy_core_pipeline",
+  "bevy_pbr",
+  "bevy_render",
+  "bevy_winit",
+  "multi-threaded",
+  # For skybox
+  "ktx2",
+  "zstd",
+  # Might be used in the future
+  # "png", # For textures
+  # "wayland", # For linux support on CI
+  # "webgl2", # For wasm
+  # Other
+  # "bevy_audio",
+  # "bevy_text",
+  # "bevy_ui",
+  # "default_font",
+] }
