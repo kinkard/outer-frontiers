@@ -6,10 +6,12 @@ use bevy::{
     prelude::*,
     render::{renderer::RenderDevice, texture::CompressedImageFormats},
 };
+use bevy_inspector_egui::quick::WorldInspectorPlugin;
 
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
+        .add_plugins(WorldInspectorPlugin::new())
         .add_systems(Startup, setup)
         .add_systems(Update, (camera_controller, animate_light_direction))
         .run();
@@ -206,7 +208,7 @@ pub fn camera_controller(
         // Handle mouse input
         let mut mouse_delta = Vec2::ZERO;
         if mouse_button_input.pressed(options.mouse_key_enable_mouse) || *move_toggled {
-            for mouse_event in mouse_events.read() {
+            for mouse_event in mouse_events.iter() {
                 mouse_delta += mouse_event.delta;
             }
         }

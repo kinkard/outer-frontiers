@@ -11,7 +11,7 @@ opt-level = 3
 
 [dependencies]
 # Keep only what is really used to keep binary small and compilation fast
-bevy = { git = "https://github.com/bevyengine/bevy.git", default-features = false, features = [
+bevy = { version = "0.11.2", default-features = false, features = [
   # Core 3D features
   "bevy_core_pipeline",
   "bevy_pbr",
@@ -34,3 +34,23 @@ bevy = { git = "https://github.com/bevyengine/bevy.git", default-features = fals
   # "bevy_ui",
   # "default_font",
 ] }
+bevy-inspector-egui = "0.19"
+
+# Using fork with backported https://github.com/bevyengine/bevy/pull/9909 to 0.11.2
+# This allows us to use thirdparty plugins as the upstream is now on 0.12-dev
+# Unfortunately patch works on per-crate basis, so we need to override all of them =\
+[patch.crates-io]
+bevy = { git = "https://github.com/kinkard/bevy.git", branch = "v0.11.2-skybox-fix"}
+bevy_app = { git = "https://github.com/kinkard/bevy.git", branch = "v0.11.2-skybox-fix"}
+bevy_asset = { git = "https://github.com/kinkard/bevy.git", branch = "v0.11.2-skybox-fix"}
+bevy_core = { git = "https://github.com/kinkard/bevy.git", branch = "v0.11.2-skybox-fix"}
+bevy_core_pipeline = { git = "https://github.com/kinkard/bevy.git", branch = "v0.11.2-skybox-fix"}
+bevy_ecs = { git = "https://github.com/kinkard/bevy.git", branch = "v0.11.2-skybox-fix"}
+bevy_hierarchy = { git = "https://github.com/kinkard/bevy.git", branch = "v0.11.2-skybox-fix"}
+bevy_log = { git = "https://github.com/kinkard/bevy.git", branch = "v0.11.2-skybox-fix"}
+bevy_math = { git = "https://github.com/kinkard/bevy.git", branch = "v0.11.2-skybox-fix"}
+bevy_pbr = { git = "https://github.com/kinkard/bevy.git", branch = "v0.11.2-skybox-fix"}
+bevy_reflect = { git = "https://github.com/kinkard/bevy.git", branch = "v0.11.2-skybox-fix"}
+bevy_render = { git = "https://github.com/kinkard/bevy.git", branch = "v0.11.2-skybox-fix"}
+bevy_utils = { git = "https://github.com/kinkard/bevy.git", branch = "v0.11.2-skybox-fix"}
+bevy_window = { git = "https://github.com/kinkard/bevy.git", branch = "v0.11.2-skybox-fix"}
