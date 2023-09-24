@@ -18,13 +18,16 @@ bevy = { git = "https://github.com/bevyengine/bevy.git", default-features = fals
   "bevy_render",
   "bevy_winit",
   "multi-threaded",
-  # For skybox
+  # For skybox compressed texture
   "ktx2",
   "zstd",
+  # For gltf assets
+  "bevy_gltf",
+  "tonemapping_luts", # for correct material loading
+
+  "webgl2", # For wasm target
   # Might be used in the future
-  # "png", # For textures
   # "wayland", # For linux support on CI
-  # "webgl2", # For wasm
   # Other
   # "bevy_audio",
   # "bevy_text",

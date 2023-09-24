@@ -16,6 +16,21 @@ Run game (make sure that [Rust](https://www.rust-lang.org/tools/install) is inst
 cargo run --release
 ```
 
+## WASM support
+
+Setup required target and runner
+
+```sh
+rustup target install wasm32-unknown-unknown
+cargo install wasm-server-runner
+```
+
+Build & Run
+
+```sh
+cargo run --target wasm32-unknown-unknown --release
+```
+
 ## License
 
 All code in this project is dual-licensed under either:
