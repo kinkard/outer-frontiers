@@ -12,12 +12,17 @@ fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
         .add_plugins(WorldInspectorPlugin::new())
+        .add_systems(Startup, setup_camera)
         .add_systems(Startup, setup)
         .add_systems(Update, (camera_controller, animate_light_direction))
         .run();
 }
 
-fn setup(mut commands: Commands, asset_server: Res<AssetServer>, render_device: Res<RenderDevice>) {
+fn setup_camera(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    render_device: Res<RenderDevice>,
+) {
     // directional 'sun' light
     commands.spawn(DirectionalLightBundle {
         directional_light: DirectionalLight {
@@ -45,23 +50,6 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>, render_device: 
     );
     let skybox_image = asset_server.load("textures/space_cubemap_astc.ktx2");
 
-    // Raw PNG also can be used with conversion to the cubemap using ImageMagick (see Unity coordinate system):
-    // `convert posx.png negx.png posy.png negy.png posz.png negz.png -gravity center -append cubemap.png`
-    // NOTE: PNGs do not have any metadata that could indicate they contain a cubemap texture,
-    // so they appear as one texture. The following code reconfigures the texture as necessary:
-    // ```
-    // let mut image = images.get_mut(&image_handle).unwrap();
-    // if image.texture_descriptor.array_layer_count() == 1 {
-    //     image.reinterpret_stacked_2d_as_array(
-    //         image.texture_descriptor.size.height / image.texture_descriptor.size.width,
-    //     );
-    //     image.texture_view_descriptor = Some(TextureViewDescriptor {
-    //         dimension: Some(TextureViewDimension::Cube),
-    //         ..default()
-    //     });
-    // }
-    // ```
-
     commands.spawn((
         Camera3dBundle {
             transform: Transform::from_xyz(0.0, 0.0, 8.0).looking_at(Vec3::ZERO, Vec3::Y),
@@ -69,8 +57,17 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>, render_device: 
         },
         CameraController::default(),
         Skybox(skybox_image),
+        // todo: specify environment light according to the skybox
+        // see the scene_viewer example for more details:
+        // EnvironmentMapLight {
+        //     diffuse_map: asset_server.load("assets/environment_maps/pisa_diffuse_rgb9e5_zstd.ktx2"),
+        //     specular_map: asset_server
+        //         .load("assets/environment_maps/pisa_specular_rgb9e5_zstd.ktx2"),
+        // },
     ));
+}
 
+fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands
         .spawn(SceneBundle {
             scene: asset_server.load("models/zenith_station.glb#Scene0"),
