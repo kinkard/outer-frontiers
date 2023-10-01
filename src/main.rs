@@ -7,13 +7,26 @@ use bevy::{
     render::{renderer::RenderDevice, texture::CompressedImageFormats},
 };
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
+use bevy_rapier3d::prelude::*;
+
+mod models;
+
+#[derive(Clone, Eq, PartialEq, Debug, Hash, Default, States)]
+enum GameStates {
+    #[default]
+    AssetLoading,
+    Next,
+}
 
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
         .add_plugins(WorldInspectorPlugin::new())
-        .add_systems(Startup, setup_camera)
-        .add_systems(Startup, setup)
+        .add_plugins(RapierPhysicsPlugin::<NoUserData>::default())
+        .add_plugins(RapierDebugRenderPlugin::default())
+        .add_plugins(models::ModelsPlugin)
+        .add_state::<GameStates>()
+        .add_systems(OnEnter(GameStates::Next), (setup_camera, setup))
         .add_systems(Update, (camera_controller, animate_light_direction))
         .run();
 }
@@ -67,10 +80,10 @@ fn setup_camera(
     ));
 }
 
-fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
+fn setup(mut commands: Commands, models: Res<models::Models>) {
     commands
         .spawn(SceneBundle {
-            scene: asset_server.load("models/zenith_station.glb#Scene0"),
+            scene: models.zenith_station.clone(),
             ..default()
         })
         .insert(TransformBundle::from(Transform {
@@ -78,6 +91,39 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             ..default()
         }))
         .insert(Name::new("Zenith station"));
+
+    commands
+        .spawn(SceneBundle {
+            scene: models.praetor.clone(),
+            ..default()
+        })
+        .insert(TransformBundle::from(Transform {
+            translation: Vec3::new(5.0, 5.0, -20.0),
+            ..default()
+        }))
+        .insert(Name::new("Praetor"));
+
+    commands
+        .spawn(SceneBundle {
+            scene: models.infiltrator.clone(),
+            ..default()
+        })
+        .insert(TransformBundle::from(Transform {
+            translation: Vec3::new(-5.0, 5.0, -20.0),
+            ..default()
+        }))
+        .insert(Name::new("Infiltrator"));
+
+    commands
+        .spawn(SceneBundle {
+            scene: models.dragoon.clone(),
+            ..default()
+        })
+        .insert(TransformBundle::from(Transform {
+            translation: Vec3::new(0.0, 5.0, 150.0),
+            ..default()
+        }))
+        .insert(Name::new("Dragoon"));
 }
 
 fn animate_light_direction(
