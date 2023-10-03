@@ -4,6 +4,19 @@ use bevy_rapier3d::prelude::*;
 
 use crate::GameStates;
 
+pub(crate) struct ModelsPlugin;
+impl Plugin for ModelsPlugin {
+    fn build(&self, app: &mut App) {
+        app.add_loading_state(
+            LoadingState::new(GameStates::AssetLoading).continue_to_state(GameStates::Next),
+        )
+        .add_collection_to_loading_state::<_, Models>(GameStates::AssetLoading)
+        .add_systems(OnExit(GameStates::AssetLoading), extract_model_colliders)
+        .init_resource::<ModelColliders>()
+        .add_systems(Update, set_model_collider);
+    }
+}
+
 #[derive(AssetCollection, Resource)]
 pub(crate) struct Models {
     #[asset(path = "models/zenith_station.glb#Scene0")]
@@ -112,18 +125,5 @@ fn set_model_collider(
         if let Some(collider) = colliders.0.get(&scene.id()) {
             commands.entity(entity).insert(collider.clone());
         }
-    }
-}
-
-pub(crate) struct ModelsPlugin;
-impl Plugin for ModelsPlugin {
-    fn build(&self, app: &mut App) {
-        app.add_loading_state(
-            LoadingState::new(GameStates::AssetLoading).continue_to_state(GameStates::Next),
-        )
-        .add_collection_to_loading_state::<_, Models>(GameStates::AssetLoading)
-        .add_systems(OnExit(GameStates::AssetLoading), extract_model_colliders)
-        .init_resource::<ModelColliders>()
-        .add_systems(Update, set_model_collider);
     }
 }
