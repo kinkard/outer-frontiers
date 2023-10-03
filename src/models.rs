@@ -44,21 +44,11 @@ fn extract_mesh_vertices(mesh: &Mesh) -> Option<Vec<Vec3>> {
 struct ModelColliders(HashMap<bevy::asset::HandleId, Collider>);
 
 fn extract_model_colliders(
-    models: Res<Models>,
     mut scenes: ResMut<Assets<Scene>>,
     meshes: Res<Assets<Mesh>>,
     mut model_colliders: ResMut<ModelColliders>,
 ) {
-    for model in [
-        &models.zenith_station,
-        &models.praetor,
-        &models.infiltrator,
-        &models.dragoon,
-    ] {
-        let scene = scenes
-            .get_mut(model)
-            .expect("All scenes should be loaded when extract_model_colliders() is called");
-
+    for (scene_id, scene) in scenes.iter_mut() {
         // Find all hulls in the scene
         let hulls = scene
             .world
@@ -101,7 +91,7 @@ fn extract_model_colliders(
         if !colliders.is_empty() {
             model_colliders
                 .0
-                .insert(model.id(), Collider::compound(colliders));
+                .insert(scene_id, Collider::compound(colliders));
         }
 
         // todo: we also want to clean up other resources as well, like Meshes
