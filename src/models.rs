@@ -13,7 +13,9 @@ impl Plugin for ModelsPlugin {
         .add_collection_to_loading_state::<_, Models>(GameStates::AssetLoading)
         .add_systems(OnExit(GameStates::AssetLoading), extract_model_colliders)
         .init_resource::<ModelColliders>()
-        .add_systems(Update, set_model_collider);
+        // From bevy 0.12 scene_spawner runs between Update and PostUpdate so we can set colliders
+        // in the same frame scene was spawned
+        .add_systems(PostUpdate, set_model_collider);
     }
 }
 
