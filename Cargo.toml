@@ -11,7 +11,7 @@ opt-level = 3
 
 [dependencies]
 # Keep only what is really used to keep binary small and compilation fast
-bevy = { version = "0.11.2", default-features = false, features = [
+bevy = { version = "0.12", default-features = false, features = [
   # Core 3D features
   "bevy_core_pipeline",
   "bevy_pbr",
@@ -34,27 +34,8 @@ bevy = { version = "0.11.2", default-features = false, features = [
   # "bevy_ui",
   # "default_font",
 ] }
-bevy-inspector-egui = "0.19"
-bevy_asset_loader = "0.17"
+bevy-inspector-egui = "0.21"
+bevy_asset_loader = "0.18"
 # Check performance with "simd-stable" or "parallel"
-bevy_rapier3d = { version = "0.22.0", default-features = false, features = ["dim3", "debug-render-3d"]}
+bevy_rapier3d = { version = "0.23", default-features = false, features = ["dim3", "debug-render-3d"]}
 # bevy_common_assets = "0.7" # for loading assets from yaml/json
-
-# Using fork with backported https://github.com/bevyengine/bevy/pull/9909 to 0.11.2
-# This allows us to use thirdparty plugins as the upstream is now on 0.12-dev
-# Unfortunately patch works on per-crate basis, so we need to override all of them =\
-[patch.crates-io]
-bevy = { git = "https://github.com/kinkard/bevy.git", branch = "v0.11.2-skybox-fix"}
-bevy_app = { git = "https://github.com/kinkard/bevy.git", branch = "v0.11.2-skybox-fix"}
-bevy_asset = { git = "https://github.com/kinkard/bevy.git", branch = "v0.11.2-skybox-fix"}
-bevy_core = { git = "https://github.com/kinkard/bevy.git", branch = "v0.11.2-skybox-fix"}
-bevy_core_pipeline = { git = "https://github.com/kinkard/bevy.git", branch = "v0.11.2-skybox-fix"}
-bevy_ecs = { git = "https://github.com/kinkard/bevy.git", branch = "v0.11.2-skybox-fix"}
-bevy_hierarchy = { git = "https://github.com/kinkard/bevy.git", branch = "v0.11.2-skybox-fix"}
-bevy_log = { git = "https://github.com/kinkard/bevy.git", branch = "v0.11.2-skybox-fix"}
-bevy_math = { git = "https://github.com/kinkard/bevy.git", branch = "v0.11.2-skybox-fix"}
-bevy_pbr = { git = "https://github.com/kinkard/bevy.git", branch = "v0.11.2-skybox-fix"}
-bevy_reflect = { git = "https://github.com/kinkard/bevy.git", branch = "v0.11.2-skybox-fix"}
-bevy_render = { git = "https://github.com/kinkard/bevy.git", branch = "v0.11.2-skybox-fix"}
-bevy_utils = { git = "https://github.com/kinkard/bevy.git", branch = "v0.11.2-skybox-fix"}
-bevy_window = { git = "https://github.com/kinkard/bevy.git", branch = "v0.11.2-skybox-fix"}

@@ -54,7 +54,7 @@ fn extract_mesh_vertices(mesh: &Mesh) -> Option<Vec<Vec3>> {
 // }
 
 #[derive(Default, Resource)]
-struct ModelColliders(HashMap<bevy::asset::HandleId, Collider>);
+struct ModelColliders(HashMap<AssetId<Scene>, Collider>);
 
 fn extract_model_colliders(
     mut scenes: ResMut<Assets<Scene>>,
