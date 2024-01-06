@@ -2,7 +2,6 @@ use std::f32::consts::PI;
 
 use bevy::{
     core_pipeline::Skybox,
-    input::mouse::MouseMotion,
     prelude::*,
     render::{renderer::RenderDevice, texture::CompressedImageFormats},
 };
@@ -27,7 +26,10 @@ fn main() {
         .add_plugins(models::ModelsPlugin)
         .add_state::<GameStates>()
         .add_systems(OnEnter(GameStates::Next), (setup_camera, setup))
-        .add_systems(Update, (camera_controller, animate_light_direction))
+        .add_systems(
+            Update,
+            (camera_controller, animate_light_direction).run_if(in_state(GameStates::Next)),
+        )
         .run();
 }
 
@@ -136,132 +138,106 @@ fn animate_light_direction(
 }
 
 #[derive(Component)]
-pub struct CameraController {
-    pub enabled: bool,
-    pub initialized: bool,
-    pub sensitivity: f32,
-    pub key_forward: KeyCode,
-    pub key_back: KeyCode,
-    pub key_left: KeyCode,
-    pub key_right: KeyCode,
-    pub key_up: KeyCode,
-    pub key_down: KeyCode,
-    pub key_run: KeyCode,
-    pub mouse_key_enable_mouse: MouseButton,
-    pub keyboard_key_enable_mouse: KeyCode,
-    pub walk_speed: f32,
-    pub run_speed: f32,
-    pub friction: f32,
-    pub pitch: f32,
-    pub yaw: f32,
-    pub velocity: Vec3,
+struct CameraController {
+    key_accelerate: KeyCode,
+    key_decelerate: KeyCode,
+    key_strafe_left: KeyCode,
+    key_strafe_right: KeyCode,
+    key_strafe_up: KeyCode,
+    key_strage_down: KeyCode,
+    key_rotate_clockwise: KeyCode,
+    key_rotate_counter_clockwise: KeyCode,
+    key_run: KeyCode,
 }
 
 impl Default for CameraController {
     fn default() -> Self {
         Self {
-            enabled: true,
-            initialized: false,
-            sensitivity: 0.5,
-            key_forward: KeyCode::W,
-            key_back: KeyCode::S,
-            key_left: KeyCode::A,
-            key_right: KeyCode::D,
-            key_up: KeyCode::E,
-            key_down: KeyCode::Q,
+            key_accelerate: KeyCode::X,
+            key_decelerate: KeyCode::Z,
+            key_strafe_left: KeyCode::A,
+            key_strafe_right: KeyCode::D,
+            key_strafe_up: KeyCode::W,
+            key_strage_down: KeyCode::S,
+            key_rotate_clockwise: KeyCode::E,
+            key_rotate_counter_clockwise: KeyCode::Q,
             key_run: KeyCode::ShiftLeft,
-            mouse_key_enable_mouse: MouseButton::Left,
-            keyboard_key_enable_mouse: KeyCode::M,
-            walk_speed: 20.0,
-            run_speed: 60.0,
-            friction: 0.5,
-            pitch: 0.0,
-            yaw: 0.0,
-            velocity: Vec3::ZERO,
         }
     }
 }
 
-pub fn camera_controller(
+fn camera_controller(
     time: Res<Time>,
-    mut mouse_events: EventReader<MouseMotion>,
-    mouse_button_input: Res<Input<MouseButton>>,
-    key_input: Res<Input<KeyCode>>,
-    mut move_toggled: Local<bool>,
-    mut query: Query<(&mut Transform, &mut CameraController), With<Camera>>,
+    keys: Res<Input<KeyCode>>,
+    mouse: Res<Input<MouseButton>>,
+    mut mouse_guidance: Local<bool>,
+    mut windows: Query<&mut Window>,
+    mut egui: bevy_inspector_egui::bevy_egui::EguiContexts,
+    mut camera_controller: Query<(&mut Transform, &CameraController), With<Camera>>,
 ) {
-    let dt = time.delta_seconds();
+    let (mut transform, config) = camera_controller.single_mut();
 
-    if let Ok((mut transform, mut options)) = query.get_single_mut() {
-        if !options.initialized {
-            let (yaw, pitch, _roll) = transform.rotation.to_euler(EulerRot::YXZ);
-            options.yaw = yaw;
-            options.pitch = pitch;
-            options.initialized = true;
-        }
-        if !options.enabled {
-            return;
-        }
+    let camera_speed = if keys.pressed(config.key_run) {
+        80.0
+    } else {
+        20.0
+    };
+    let camepa_step = camera_speed * time.delta_seconds();
 
-        // Handle key input
-        let mut axis_input = Vec3::ZERO;
-        if key_input.pressed(options.key_forward) {
-            axis_input.z += 1.0;
-        }
-        if key_input.pressed(options.key_back) {
-            axis_input.z -= 1.0;
-        }
-        if key_input.pressed(options.key_right) {
-            axis_input.x += 1.0;
-        }
-        if key_input.pressed(options.key_left) {
-            axis_input.x -= 1.0;
-        }
-        if key_input.pressed(options.key_up) {
-            axis_input.y += 1.0;
-        }
-        if key_input.pressed(options.key_down) {
-            axis_input.y -= 1.0;
-        }
-        if key_input.just_pressed(options.keyboard_key_enable_mouse) {
-            *move_toggled = !*move_toggled;
-        }
+    let mut translation = Vec3::ZERO;
+    if keys.pressed(config.key_strafe_up) {
+        translation.y += camepa_step;
+    }
+    if keys.pressed(config.key_strage_down) {
+        translation.y -= camepa_step;
+    }
+    if keys.pressed(config.key_strafe_left) {
+        translation.x -= camepa_step;
+    }
+    if keys.pressed(config.key_strafe_right) {
+        translation.x += camepa_step;
+    }
+    if keys.pressed(config.key_accelerate) {
+        translation.z -= camepa_step;
+    }
+    if keys.pressed(config.key_decelerate) {
+        translation.z += camepa_step;
+    }
 
-        // Apply movement update
-        if axis_input != Vec3::ZERO {
-            let max_speed = if key_input.pressed(options.key_run) {
-                options.run_speed
-            } else {
-                options.walk_speed
-            };
-            options.velocity = axis_input.normalize() * max_speed;
-        } else {
-            let friction = options.friction.clamp(0.0, 1.0);
-            options.velocity *= 1.0 - friction;
-            if options.velocity.length_squared() < 1e-6 {
-                options.velocity = Vec3::ZERO;
+    let rotation_step = std::f32::consts::PI * time.delta_seconds();
+    let mut rotation = Quat::IDENTITY;
+    if keys.pressed(config.key_rotate_counter_clockwise) {
+        rotation *= Quat::from_rotation_z(rotation_step);
+    }
+    if keys.pressed(config.key_rotate_clockwise) {
+        rotation *= Quat::from_rotation_z(-rotation_step);
+    }
+
+    // Enable mouse guidance if Space is pressed
+    if keys.just_released(KeyCode::Space) {
+        *mouse_guidance = !*mouse_guidance;
+    }
+
+    let click_guidance = !egui.ctx_mut().is_pointer_over_area()
+        && !egui.ctx_mut().is_using_pointer()
+        && mouse.pressed(MouseButton::Left);
+    if *mouse_guidance || click_guidance {
+        let window = windows.single_mut();
+
+        if let Some(pos) = window.cursor_position() {
+            let center = Vec2::new(window.width() / 2.0, window.height() / 2.0);
+            let offset = center - pos;
+
+            // Safe zone around screen center for mouse_guidance mode
+            if click_guidance || offset.length_squared() > 400.0 {
+                let step = 0.3 * time.delta_seconds();
+                rotation *= Quat::from_rotation_y(offset.x.to_radians() * step);
+                rotation *= Quat::from_rotation_x(offset.y.to_radians() * step);
             }
-        }
-        let forward = transform.forward();
-        let right = transform.right();
-        transform.translation += options.velocity.x * dt * right
-            + options.velocity.y * dt * Vec3::Y
-            + options.velocity.z * dt * forward;
-
-        // Handle mouse input
-        let mut mouse_delta = Vec2::ZERO;
-        if mouse_button_input.pressed(options.mouse_key_enable_mouse) || *move_toggled {
-            for mouse_event in mouse_events.read() {
-                mouse_delta += mouse_event.delta;
-            }
-        }
-
-        if mouse_delta != Vec2::ZERO {
-            // Apply look update
-            options.pitch = (options.pitch - mouse_delta.y * 0.5 * options.sensitivity * dt)
-                .clamp(-PI / 2., PI / 2.);
-            options.yaw -= mouse_delta.x * options.sensitivity * dt;
-            transform.rotation = Quat::from_euler(EulerRot::ZYX, 0.0, options.yaw, options.pitch);
         }
     }
+
+    transform.rotate_local(rotation);
+    translation = transform.rotation * translation;
+    transform.translation += translation;
 }
