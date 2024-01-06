@@ -8,9 +8,10 @@ pub(crate) struct ModelsPlugin;
 impl Plugin for ModelsPlugin {
     fn build(&self, app: &mut App) {
         app.add_loading_state(
-            LoadingState::new(GameStates::AssetLoading).continue_to_state(GameStates::Next),
+            LoadingState::new(GameStates::AssetLoading)
+                .continue_to_state(GameStates::Next)
+                .load_collection::<Models>(),
         )
-        .add_collection_to_loading_state::<_, Models>(GameStates::AssetLoading)
         .add_systems(OnExit(GameStates::AssetLoading), extract_model_colliders)
         .init_resource::<ModelColliders>()
         // From bevy 0.12 scene_spawner runs between Update and PostUpdate so we can set colliders
@@ -55,9 +56,14 @@ fn extract_mesh_vertices(mesh: &Mesh) -> Option<Vec<Vec3>> {
 //     }
 // }
 
+/// A workaround for rapier Colliders that are built on the game startup.
+/// This collection is filled right after all scenes are loaded and then used
+/// every time corresponding scene is spawned.
 #[derive(Default, Resource)]
 struct ModelColliders(HashMap<AssetId<Scene>, Collider>);
 
+/// Extracts hulls (meshed with `_hull` or `_hull_<some number>` suffix),
+/// builds rapier Collider from them and stores in the `ModelColliders`
 fn extract_model_colliders(
     mut scenes: ResMut<Assets<Scene>>,
     meshes: Res<Assets<Mesh>>,
@@ -67,6 +73,8 @@ fn extract_model_colliders(
         // Find all hulls in the scene
         let hulls = scene
             .world
+            // There are two entities in the scene for each hull - mesh itself and parent Node.
+            // Transforms are stored inside Node (which is parent to the Mesh)
             .query::<(Entity, &Name, Without<Handle<Mesh>>)>()
             .iter(&scene.world)
             .filter_map(|(entity, name, _)| {
@@ -81,7 +89,7 @@ fn extract_model_colliders(
         let colliders = hulls
             .iter()
             .filter_map(|hull| {
-                // todo: transforms should be combined from the root
+                // todo: transforms should be combined from the root to handle nested hulls
                 let transform = scene.world.get::<Transform>(*hull)?;
                 let children = scene.world.get::<Children>(*hull)?;
                 Some((transform.compute_affine(), children))
@@ -92,6 +100,7 @@ fn extract_model_colliders(
                     .filter_map(|entity| scene.world.get::<Handle<Mesh>>(*entity))
                     .map(|handle| meshes.get(handle).expect("broken mesh handle"))
                     .filter_map(extract_mesh_vertices)
+                    // Transform Mesh points into world coordinates
                     .map(move |mut vertices| {
                         vertices
                             .iter_mut()
@@ -118,6 +127,7 @@ fn extract_model_colliders(
     }
 }
 
+/// Attaches rapier Collider to the scene entity once it is spawned
 fn set_model_collider(
     mut commands: Commands,
     colliders: Res<ModelColliders>,
