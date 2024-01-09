@@ -26,6 +26,7 @@ fn main() {
             Update,
             (camera_controller, animate_light_direction).run_if(in_state(GameStates::Next)),
         )
+        .add_systems(Update, bevy::window::close_on_esc)
         .run();
 }
 
