@@ -19,18 +19,23 @@ fn main() {
         .add_plugins(WorldInspectorPlugin::new())
         .add_plugins(RapierPhysicsPlugin::<NoUserData>::default())
         .add_plugins(RapierDebugRenderPlugin::default())
+        .insert_resource(RapierConfiguration {
+            gravity: Vec3::ZERO, // disable gravity at all
+            ..default()
+        })
         .add_plugins(assets::AssetsPlugin)
         .add_state::<GameStates>()
-        .add_systems(OnEnter(GameStates::Next), (setup_camera, setup))
+        .add_systems(OnEnter(GameStates::Next), (setup_light, setup))
         .add_systems(
             Update,
-            (camera_controller, animate_light_direction).run_if(in_state(GameStates::Next)),
+            (player_controller, animate_light_direction).run_if(in_state(GameStates::Next)),
         )
         .add_systems(Update, bevy::window::close_on_esc)
         .run();
 }
 
-fn setup_camera(mut commands: Commands, environment: Res<assets::Environment>) {
+// todo: replace by EnvironmentMapLight
+fn setup_light(mut commands: Commands) {
     // directional 'sun' light
     commands.spawn(DirectionalLightBundle {
         directional_light: DirectionalLight {
@@ -47,25 +52,13 @@ fn setup_camera(mut commands: Commands, environment: Res<assets::Environment>) {
         color: Color::rgb_u8(210, 220, 240),
         brightness: 0.3,
     });
-
-    commands.spawn((
-        Camera3dBundle {
-            transform: Transform::from_xyz(0.0, 0.0, 8.0).looking_at(Vec3::ZERO, Vec3::Y),
-            ..default()
-        },
-        CameraController::default(),
-        Skybox(environment.skybox_image.clone()),
-        // todo: specify environment light according to the skybox
-        // see the scene_viewer example for more details:
-        // EnvironmentMapLight {
-        //     diffuse_map: asset_server.load("assets/environment_maps/pisa_diffuse_rgb9e5_zstd.ktx2"),
-        //     specular_map: asset_server
-        //         .load("assets/environment_maps/pisa_specular_rgb9e5_zstd.ktx2"),
-        // },
-    ));
 }
 
-fn setup(mut commands: Commands, models: Res<assets::Models>) {
+fn setup(
+    mut commands: Commands,
+    models: Res<assets::Models>,
+    environment: Res<assets::Environment>,
+) {
     commands
         .spawn(SceneBundle {
             scene: models.zenith_station.clone(),
@@ -86,6 +79,28 @@ fn setup(mut commands: Commands, models: Res<assets::Models>) {
             translation: Vec3::new(5.0, 5.0, -20.0),
             ..default()
         }))
+        .insert(PlayerController::default())
+        .insert(RigidBody::Dynamic)
+        .insert(Restitution::coefficient(0.7))
+        .insert(Damping {
+            linear_damping: 0.0,
+            angular_damping: 1.0,
+        })
+        .insert(ExternalForce::default())
+        .insert(Velocity::default())
+        .with_children(|parent| {
+            parent.spawn((
+                Camera3dBundle::default(),
+                Skybox(environment.skybox_image.clone()),
+                // todo: specify environment light according to the skybox
+                // see the scene_viewer example for more details:
+                // EnvironmentMapLight {
+                //     diffuse_map: asset_server.load("assets/environment_maps/pisa_diffuse_rgb9e5_zstd.ktx2"),
+                //     specular_map: asset_server
+                //         .load("assets/environment_maps/pisa_specular_rgb9e5_zstd.ktx2"),
+                // },
+            ));
+        })
         .insert(Name::new("Praetor"));
 
     commands
@@ -97,6 +112,8 @@ fn setup(mut commands: Commands, models: Res<assets::Models>) {
             translation: Vec3::new(-5.0, 5.0, -20.0),
             ..default()
         }))
+        .insert(RigidBody::Dynamic)
+        .insert(Restitution::coefficient(0.7))
         .insert(Name::new("Infiltrator"));
 
     commands
@@ -121,7 +138,7 @@ fn animate_light_direction(
 }
 
 #[derive(Component)]
-struct CameraController {
+struct PlayerController {
     key_accelerate: KeyCode,
     key_decelerate: KeyCode,
     key_strafe_left: KeyCode,
@@ -130,10 +147,9 @@ struct CameraController {
     key_strage_down: KeyCode,
     key_rotate_clockwise: KeyCode,
     key_rotate_counter_clockwise: KeyCode,
-    key_run: KeyCode,
 }
 
-impl Default for CameraController {
+impl Default for PlayerController {
     fn default() -> Self {
         Self {
             key_accelerate: KeyCode::X,
@@ -144,56 +160,46 @@ impl Default for CameraController {
             key_strage_down: KeyCode::S,
             key_rotate_clockwise: KeyCode::E,
             key_rotate_counter_clockwise: KeyCode::Q,
-            key_run: KeyCode::ShiftLeft,
         }
     }
 }
 
-fn camera_controller(
-    time: Res<Time>,
+fn player_controller(
     keys: Res<Input<KeyCode>>,
     mouse: Res<Input<MouseButton>>,
     mut mouse_guidance: Local<bool>,
     mut windows: Query<&mut Window>,
     mut egui: bevy_inspector_egui::bevy_egui::EguiContexts,
-    mut camera_controller: Query<(&mut Transform, &CameraController), With<Camera>>,
+    mut player: Query<(&Transform, &PlayerController, &mut ExternalForce)>,
 ) {
-    let (mut transform, config) = camera_controller.single_mut();
+    let (transform, config, mut force) = player.single_mut();
 
-    let camera_speed = if keys.pressed(config.key_run) {
-        80.0
-    } else {
-        20.0
-    };
-    let camepa_step = camera_speed * time.delta_seconds();
-
-    let mut translation = Vec3::ZERO;
+    force.force = Vec3::ZERO;
     if keys.pressed(config.key_strafe_up) {
-        translation.y += camepa_step;
+        force.force += transform.up() * 100.0;
     }
     if keys.pressed(config.key_strage_down) {
-        translation.y -= camepa_step;
+        force.force += transform.down() * 100.0;
     }
     if keys.pressed(config.key_strafe_left) {
-        translation.x -= camepa_step;
+        force.force += transform.left() * 100.0;
     }
     if keys.pressed(config.key_strafe_right) {
-        translation.x += camepa_step;
+        force.force += transform.right() * 100.0;
     }
     if keys.pressed(config.key_accelerate) {
-        translation.z -= camepa_step;
+        force.force += transform.forward() * 1000.0;
     }
     if keys.pressed(config.key_decelerate) {
-        translation.z += camepa_step;
+        force.force += transform.back() * 1000.0;
     }
 
-    let rotation_step = std::f32::consts::PI * time.delta_seconds();
-    let mut rotation = Quat::IDENTITY;
+    force.torque = Vec3::ZERO;
     if keys.pressed(config.key_rotate_counter_clockwise) {
-        rotation *= Quat::from_rotation_z(rotation_step);
+        force.torque += transform.back() * 300.0;
     }
     if keys.pressed(config.key_rotate_clockwise) {
-        rotation *= Quat::from_rotation_z(-rotation_step);
+        force.torque += transform.forward() * 300.0;
     }
 
     // Enable mouse guidance if Space is pressed
@@ -213,14 +219,9 @@ fn camera_controller(
 
             // Safe zone around screen center for mouse_guidance mode
             if click_guidance || offset.length_squared() > 400.0 {
-                let step = 0.3 * time.delta_seconds();
-                rotation *= Quat::from_rotation_y(offset.x.to_radians() * step);
-                rotation *= Quat::from_rotation_x(offset.y.to_radians() * step);
+                force.torque += transform.up() * offset.x;
+                force.torque += transform.right() * offset.y;
             }
         }
     }
-
-    transform.rotate_local(rotation);
-    translation = transform.rotation * translation;
-    transform.translation += translation;
 }
