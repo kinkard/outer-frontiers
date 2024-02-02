@@ -25,6 +25,7 @@ fn main() {
         })
         .add_plugins(assets::AssetsPlugin)
         .add_state::<GameStates>()
+        .init_resource::<ControlsConfig>()
         .add_systems(OnEnter(GameStates::Next), (setup_light, setup))
         .add_systems(
             Update,
@@ -54,6 +55,10 @@ fn setup_light(mut commands: Commands) {
     });
 }
 
+/// Marker component for the player spaceship
+#[derive(Component)]
+struct Player;
+
 fn setup(
     mut commands: Commands,
     models: Res<assets::Models>,
@@ -79,7 +84,7 @@ fn setup(
             translation: Vec3::new(5.0, 5.0, -20.0),
             ..default()
         }))
-        .insert(PlayerController::default())
+        .insert(Player)
         .insert(RigidBody::Dynamic)
         .insert(Restitution::coefficient(0.7))
         .insert(Damping {
@@ -137,8 +142,8 @@ fn animate_light_direction(
     }
 }
 
-#[derive(Component)]
-struct PlayerController {
+#[derive(Resource)]
+struct ControlsConfig {
     key_accelerate: KeyCode,
     key_decelerate: KeyCode,
     key_strafe_left: KeyCode,
@@ -149,7 +154,7 @@ struct PlayerController {
     key_rotate_counter_clockwise: KeyCode,
 }
 
-impl Default for PlayerController {
+impl Default for ControlsConfig {
     fn default() -> Self {
         Self {
             key_accelerate: KeyCode::X,
@@ -165,14 +170,15 @@ impl Default for PlayerController {
 }
 
 fn player_controller(
+    config: Res<ControlsConfig>,
     keys: Res<Input<KeyCode>>,
     mouse: Res<Input<MouseButton>>,
     mut mouse_guidance: Local<bool>,
     mut windows: Query<&mut Window>,
     mut egui: bevy_inspector_egui::bevy_egui::EguiContexts,
-    mut player: Query<(&Transform, &PlayerController, &mut ExternalForce)>,
+    mut player: Query<(&Transform, &mut ExternalForce), With<Player>>,
 ) {
-    let (transform, config, mut force) = player.single_mut();
+    let (transform, mut force) = player.single_mut();
 
     force.force = Vec3::ZERO;
     if keys.pressed(config.key_strafe_up) {
