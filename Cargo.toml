@@ -37,5 +37,5 @@ bevy = { version = "0.12", default-features = false, features = [
 bevy-inspector-egui = "0.22"
 bevy_asset_loader = "0.19"
 # Check performance with "simd-stable" or "parallel"
-bevy_rapier3d = { version = "0.23", default-features = false, features = ["dim3", "debug-render-3d"]}
+bevy_rapier3d = { version = "0.24", default-features = false, features = ["dim3", "debug-render-3d"]}
 # bevy_common_assets = "0.7" # for loading assets from yaml/json
