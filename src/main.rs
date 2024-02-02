@@ -5,6 +5,7 @@ use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_rapier3d::prelude::*;
 
 mod assets;
+mod weapon;
 
 #[derive(Clone, Eq, PartialEq, Debug, Hash, Default, States)]
 enum GameStates {
@@ -24,12 +25,14 @@ fn main() {
             ..default()
         })
         .add_plugins(assets::AssetsPlugin)
+        .add_plugins(weapon::WeaponPlugin)
         .add_state::<GameStates>()
         .init_resource::<ControlsConfig>()
         .add_systems(OnEnter(GameStates::Next), (setup_light, setup))
         .add_systems(
             Update,
-            (player_controller, animate_light_direction).run_if(in_state(GameStates::Next)),
+            (player_controller, weapon_fire, animate_light_direction)
+                .run_if(in_state(GameStates::Next)),
         )
         .add_systems(Update, bevy::window::close_on_esc)
         .run();
@@ -130,6 +133,7 @@ fn setup(
             translation: Vec3::new(0.0, 5.0, 150.0),
             ..default()
         }))
+        .insert(weapon::Weapon::default())
         .insert(Name::new("Dragoon"));
 }
 
@@ -152,6 +156,8 @@ struct ControlsConfig {
     key_strage_down: KeyCode,
     key_rotate_clockwise: KeyCode,
     key_rotate_counter_clockwise: KeyCode,
+
+    key_primary_weapon_fire: KeyCode,
 }
 
 impl Default for ControlsConfig {
@@ -165,6 +171,8 @@ impl Default for ControlsConfig {
             key_strage_down: KeyCode::S,
             key_rotate_clockwise: KeyCode::E,
             key_rotate_counter_clockwise: KeyCode::Q,
+
+            key_primary_weapon_fire: KeyCode::Space,
         }
     }
 }
@@ -228,6 +236,18 @@ fn player_controller(
                 force.torque += transform.up() * offset.x;
                 force.torque += transform.right() * offset.y;
             }
+        }
+    }
+}
+
+fn weapon_fire(
+    config: Res<ControlsConfig>,
+    keys: Res<Input<KeyCode>>,
+    mut weapon: Query<&mut weapon::Weapon, With<Player>>,
+) {
+    if keys.pressed(config.key_primary_weapon_fire) {
+        for mut weapon in &mut weapon {
+            weapon.fire();
         }
     }
 }
