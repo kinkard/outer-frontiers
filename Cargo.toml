@@ -25,10 +25,9 @@ bevy = { version = "0.12", default-features = false, features = [
   "bevy_gltf",
   "tonemapping_luts", # for correct material loading
 
-  "webgl2", # For wasm target
+  "webgl2", # For wasm target support
+  "wayland", # For linux support
   # Might be used in the future
-  # "wayland", # For linux support on CI
-  # Other
   # "bevy_audio",
   # "bevy_text",
   # "bevy_ui",
