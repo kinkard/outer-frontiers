@@ -98,10 +98,14 @@ fn setup(
         .insert(Velocity::default())
         .with_children(|parent| {
             parent.spawn((
-                Camera3dBundle::default(),
+                Camera3dBundle {
+                    // slightly behind and above the spaceship
+                    transform: Transform::from_xyz(0.0, 3.0, 20.0),
+                    ..default()
+                },
                 Skybox {
                     image: environment.skybox_image.clone(),
-                    brightness: 150.0,
+                    brightness: 1500.0,
                 },
                 // todo: specify environment light according to the skybox
                 // see the scene_viewer example for more details:
