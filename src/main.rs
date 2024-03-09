@@ -26,7 +26,7 @@ fn main() {
         })
         .add_plugins(assets::AssetsPlugin)
         .add_plugins(weapon::WeaponPlugin)
-        .add_state::<GameStates>()
+        .init_state::<GameStates>()
         .init_resource::<ControlsConfig>()
         .add_systems(OnEnter(GameStates::Next), (setup_light, setup))
         .add_systems(
@@ -99,7 +99,10 @@ fn setup(
         .with_children(|parent| {
             parent.spawn((
                 Camera3dBundle::default(),
-                Skybox(environment.skybox_image.clone()),
+                Skybox {
+                    image: environment.skybox_image.clone(),
+                    brightness: 150.0,
+                },
                 // todo: specify environment light according to the skybox
                 // see the scene_viewer example for more details:
                 // EnvironmentMapLight {
@@ -163,14 +166,14 @@ struct ControlsConfig {
 impl Default for ControlsConfig {
     fn default() -> Self {
         Self {
-            key_accelerate: KeyCode::X,
-            key_decelerate: KeyCode::Z,
-            key_strafe_left: KeyCode::A,
-            key_strafe_right: KeyCode::D,
-            key_strafe_up: KeyCode::W,
-            key_strage_down: KeyCode::S,
-            key_rotate_clockwise: KeyCode::E,
-            key_rotate_counter_clockwise: KeyCode::Q,
+            key_accelerate: KeyCode::KeyX,
+            key_decelerate: KeyCode::KeyZ,
+            key_strafe_left: KeyCode::KeyA,
+            key_strafe_right: KeyCode::KeyD,
+            key_strafe_up: KeyCode::KeyW,
+            key_strage_down: KeyCode::KeyS,
+            key_rotate_clockwise: KeyCode::KeyE,
+            key_rotate_counter_clockwise: KeyCode::KeyQ,
 
             key_primary_weapon_fire: KeyCode::Space,
         }
@@ -179,8 +182,8 @@ impl Default for ControlsConfig {
 
 fn player_controller(
     config: Res<ControlsConfig>,
-    keys: Res<Input<KeyCode>>,
-    mouse: Res<Input<MouseButton>>,
+    keys: Res<ButtonInput<KeyCode>>,
+    mouse: Res<ButtonInput<MouseButton>>,
     mut mouse_guidance: Local<bool>,
     mut windows: Query<&mut Window>,
     mut egui: bevy_inspector_egui::bevy_egui::EguiContexts,
@@ -242,7 +245,7 @@ fn player_controller(
 
 fn weapon_fire(
     config: Res<ControlsConfig>,
-    keys: Res<Input<KeyCode>>,
+    keys: Res<ButtonInput<KeyCode>>,
     mut weapon: Query<&mut weapon::Weapon, With<Player>>,
 ) {
     if keys.pressed(config.key_primary_weapon_fire) {

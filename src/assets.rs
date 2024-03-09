@@ -102,9 +102,9 @@ fn extract_model_colliders(
             .world
             // There are two entities in the scene for each hull - mesh itself and parent Node.
             // Transforms are stored inside Node (which is parent to the Mesh)
-            .query::<(Entity, &Name, Without<Handle<Mesh>>)>()
+            .query_filtered::<(Entity, &Name), Without<Handle<Mesh>>>()
             .iter(&scene.world)
-            .filter_map(|(entity, name, _)| {
+            .filter_map(|(entity, name)| {
                 if name.ends_with("_hull") || name.contains("_hull_") {
                     Some(entity)
                 } else {

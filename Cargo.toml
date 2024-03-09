@@ -11,7 +11,7 @@ opt-level = 3
 
 [dependencies]
 # Keep only what is really used to keep binary small and compilation fast
-bevy = { version = "0.12", default-features = false, features = [
+bevy = { version = "0.13", default-features = false, features = [
   # Core 3D features
   "bevy_core_pipeline",
   "bevy_pbr",
@@ -33,8 +33,8 @@ bevy = { version = "0.12", default-features = false, features = [
   # "bevy_ui",
   # "default_font",
 ] }
-bevy-inspector-egui = "0.22"
-bevy_asset_loader = "0.19"
+bevy-inspector-egui = "0.23"
+bevy_asset_loader = "0.20"
 # Check performance with "simd-stable" or "parallel"
-bevy_rapier3d = { version = "0.24", default-features = false, features = ["dim3", "debug-render-3d"]}
+bevy_rapier3d = { version = "0.25", default-features = false, features = ["dim3", "debug-render-3d"]}
 # bevy_common_assets = "0.7" # for loading assets from yaml/json

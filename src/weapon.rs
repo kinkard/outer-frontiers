@@ -48,10 +48,9 @@ impl Projectile {
         let radius = 0.1;
         Self {
             collider: Collider::capsule_y(8.0 * radius, radius),
-            mesh: meshes.add(Mesh::from(shape::Capsule {
+            mesh: meshes.add(Mesh::from(Capsule3d {
                 radius,
-                depth: 16.0 * radius,
-                ..default()
+                half_length: 8.0 * radius,
             })),
             material: materials.add(StandardMaterial {
                 base_color: Color::WHITE,
@@ -152,7 +151,7 @@ fn weapon_fire(
             projectile.spawn(
                 &mut commands,
                 transform.translation,
-                transform.forward(),
+                transform.forward().into(),
                 velocity.linvel,
             );
         }
