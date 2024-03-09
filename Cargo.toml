@@ -21,6 +21,7 @@ bevy = { version = "0.13", default-features = false, features = [
   # For skybox compressed texture
   "ktx2",
   "zstd",
+  "png",
   # For gltf assets
   "bevy_gltf",
   "tonemapping_luts", # for correct material loading
@@ -34,7 +35,7 @@ bevy = { version = "0.13", default-features = false, features = [
   # "default_font",
 ] }
 bevy-inspector-egui = "0.23"
-bevy_asset_loader = "0.20"
+bevy_asset_loader = { version = "0.20", features = ["standard_dynamic_assets"] }
 # Check performance with "simd-stable" or "parallel"
 bevy_rapier3d = { version = "0.25", default-features = false, features = ["dim3", "debug-render-3d"]}
 # bevy_common_assets = "0.7" # for loading assets from yaml/json
