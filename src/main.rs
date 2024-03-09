@@ -116,6 +116,7 @@ fn setup(
                 // },
             ));
         })
+        .insert(weapon::Weapon::default())
         .insert(Name::new("Praetor"));
 
     commands
@@ -140,7 +141,6 @@ fn setup(
             translation: Vec3::new(0.0, 5.0, 150.0),
             ..default()
         }))
-        .insert(weapon::Weapon::default())
         .insert(Name::new("Dragoon"));
 }
 
