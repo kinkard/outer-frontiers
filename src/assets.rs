@@ -7,6 +7,7 @@ use bevy::{
         renderer::RenderDevice,
         texture::CompressedImageFormats,
     },
+    scene::SceneInstance,
     utils::HashMap,
 };
 use bevy_asset_loader::prelude::*;
@@ -55,8 +56,8 @@ impl Plugin for AssetsPlugin {
         )
         .init_resource::<ModelColliders>()
         // From bevy 0.12 scene_spawner runs between Update and PostUpdate so we can set colliders
-        // in the same frame scene was spawned
-        .add_systems(PostUpdate, set_model_collider);
+        // and setup scene in the same frame scene was spawned
+        .add_systems(PostUpdate, (set_model_collider, setup_scene));
     }
 }
 
@@ -203,6 +204,66 @@ fn set_model_collider(
     for (entity, scene) in spawned_scenes.iter() {
         if let Some(collider) = colliders.0.get(&scene.id()) {
             commands.entity(entity).insert(collider.clone());
+        }
+    }
+}
+
+/// Component to attach setup function that will be invoked once scene is loaded.
+/// Inspired by https://github.com/nicopap/bevy-scene-hook but with a bit different approach.
+///
+/// Example:
+///
+/// ```
+/// commands
+///     .spawn(SceneBundle {
+///         scene: asset_server.load("my_scene.glb#Scene0"),
+///         ..default()
+///     })
+///     .insert(SceneSetup::new(|commands, entities| {
+///         entities
+///             .iter()
+///             .filter(|e| !e.contains::<Handle<Mesh>>()) // Skip GLTF Mesh entities
+///             .filter_map(|e| e.get::<Name>().map(|name| (e.id(), name)))
+///             .for_each(|(entity, name)| {
+///                 if name.starts_with("Muzzle") {
+///                     commands.entity(entity).insert(Muzzle);
+///                 } else if name.starts_with("Body") {
+///                     commands.entity(entity).insert(Body);
+///                 } else if name.starts_with("Head") {
+///                     commands.entity(entity).insert(Head);
+///                 }
+///             });
+///     }));
+/// ```
+#[derive(Component)]
+pub(crate) struct SceneSetup(Box<dyn Fn(&mut Commands, &[EntityRef]) + Send + Sync + 'static>);
+
+impl SceneSetup {
+    pub(crate) fn new<F: Fn(&mut Commands, &[EntityRef]) + Send + Sync + 'static>(
+        setup_fn: F,
+    ) -> Self {
+        Self(Box::new(setup_fn))
+    }
+}
+
+fn setup_scene(
+    scenes: Query<(Entity, &Handle<Scene>, &SceneInstance, &SceneSetup)>,
+    server: Res<AssetServer>,
+    scene_manager: Res<SceneSpawner>,
+    world: &World,
+    mut commands: Commands,
+) {
+    for (entity, handle, instance, setup) in scenes.iter() {
+        if server.is_loaded_with_dependencies(handle.id()) {
+            let instance_entities = scene_manager.iter_instance_entities(**instance);
+            let entities: Vec<_> = std::iter::once(entity)
+                .chain(instance_entities)
+                .filter_map(|e| world.get_entity(e))
+                // storing result of filtering allows us to handle lifetime problems and
+                // workaround `Box<dyn Iterator<Item = EntityRef>>` in function type declaration
+                .collect();
+            setup.0(&mut commands, &entities);
+            commands.entity(entity).remove::<SceneSetup>();
         }
     }
 }
