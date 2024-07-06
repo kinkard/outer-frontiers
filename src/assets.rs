@@ -14,6 +14,28 @@ use bevy_rapier3d::prelude::*;
 
 use crate::GameStates;
 
+/// A collection of assets related to the game environment, such as skybox cubemap texture.
+#[derive(AssetCollection, Resource)]
+pub(crate) struct Environment {
+    /// Skybox cubemap texture depending on the platform supported compression format (ASTC_LDR or PNG).
+    /// See [`resolve_supported_skybox_image()`] for more details.
+    #[asset(key = "skybox_image")]
+    pub(crate) skybox_image: Handle<Image>,
+}
+
+/// A collection of assets related to the game models.
+#[derive(AssetCollection, Resource)]
+pub(crate) struct Models {
+    #[asset(path = "models/zenith_station.glb#Scene0")]
+    pub(crate) zenith_station: Handle<Scene>,
+    #[asset(path = "models/praetor.glb#Scene0")]
+    pub(crate) praetor: Handle<Scene>,
+    #[asset(path = "models/infiltrator.glb#Scene0")]
+    pub(crate) infiltrator: Handle<Scene>,
+    #[asset(path = "models/dragoon.glb#Scene0")]
+    pub(crate) dragoon: Handle<Scene>,
+}
+
 pub(crate) struct AssetsPlugin;
 impl Plugin for AssetsPlugin {
     fn build(&self, app: &mut App) {
@@ -23,7 +45,10 @@ impl Plugin for AssetsPlugin {
                 .load_collection::<Models>()
                 .load_collection::<Environment>(),
         )
-        .add_systems(OnEnter(GameStates::AssetLoading), check_supported_formats)
+        .add_systems(
+            OnEnter(GameStates::AssetLoading),
+            resolve_supported_skybox_image,
+        )
         .add_systems(
             OnExit(GameStates::AssetLoading),
             (fix_png_skybox_metadata, extract_model_colliders),
@@ -35,14 +60,7 @@ impl Plugin for AssetsPlugin {
     }
 }
 
-#[derive(AssetCollection, Resource)]
-pub(crate) struct Environment {
-    /// Skybox cubemap texture depending on the platform supported compression format (ASTC_LDR or PNG)
-    #[asset(key = "skybox_image")]
-    pub(crate) skybox_image: Handle<Image>,
-}
-
-fn check_supported_formats(
+fn resolve_supported_skybox_image(
     render_device: Res<RenderDevice>,
     mut dynamic_assets: ResMut<DynamicAssets>,
 ) {
@@ -79,18 +97,6 @@ fn fix_png_skybox_metadata(mut images: ResMut<Assets<Image>>, environment: Res<E
             ..default()
         });
     }
-}
-
-#[derive(AssetCollection, Resource)]
-pub(crate) struct Models {
-    #[asset(path = "models/zenith_station.glb#Scene0")]
-    pub(crate) zenith_station: Handle<Scene>,
-    #[asset(path = "models/praetor.glb#Scene0")]
-    pub(crate) praetor: Handle<Scene>,
-    #[asset(path = "models/infiltrator.glb#Scene0")]
-    pub(crate) infiltrator: Handle<Scene>,
-    #[asset(path = "models/dragoon.glb#Scene0")]
-    pub(crate) dragoon: Handle<Scene>,
 }
 
 fn extract_mesh_vertices(mesh: &Mesh) -> Option<Vec<Vec3>> {
