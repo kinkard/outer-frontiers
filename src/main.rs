@@ -116,7 +116,17 @@ fn setup(
                 // },
             ));
         })
-        .insert(weapon::Weapon::default())
+        .insert(assets::SceneSetup::new(|commands, entities| {
+            entities
+                .iter()
+                .filter(|e| !e.contains::<Handle<Mesh>>()) // Skip GLTF Mesh entities
+                .filter_map(|e| e.get::<Name>().map(|name| (e.id(), name)))
+                .for_each(|(entity, name)| {
+                    if name.starts_with("barrel.") {
+                        commands.entity(entity).insert(weapon::Weapon::new(20.0));
+                    }
+                });
+        }))
         .insert(Name::new("Praetor"));
 
     commands
@@ -250,7 +260,7 @@ fn player_controller(
 fn weapon_fire(
     config: Res<ControlsConfig>,
     keys: Res<ButtonInput<KeyCode>>,
-    mut weapon: Query<&mut weapon::Weapon, With<Player>>,
+    mut weapon: Query<&mut weapon::Weapon /*, With<Player>*/>,
 ) {
     if keys.pressed(config.key_primary_weapon_fire) {
         for mut weapon in &mut weapon {

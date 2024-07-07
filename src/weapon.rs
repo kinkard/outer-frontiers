@@ -113,19 +113,15 @@ pub(crate) struct Weapon {
     seconds_since_previous: f32,
 }
 
-impl Default for Weapon {
-    fn default() -> Self {
-        let rate_of_file = 20.0;
-
+impl Weapon {
+    pub(crate) fn new(rate_of_fire: f32) -> Self {
         Self {
             is_firing: false,
-            fire_timeout: 1.0 / rate_of_file,
+            fire_timeout: 1.0 / rate_of_fire,
             seconds_since_previous: 0.0,
         }
     }
-}
 
-impl Weapon {
     pub(crate) fn fire(&mut self) {
         self.is_firing = true;
     }
@@ -134,10 +130,12 @@ impl Weapon {
 fn weapon_fire(
     mut commands: Commands,
     projectile: Res<Projectile>,
-    mut query: Query<(&mut Weapon, &Transform, &Velocity)>,
+    mut query: Query<(Entity, &mut Weapon, &GlobalTransform)>,
     time: Res<Time>,
+    velocity_query: Query<&Velocity>,
+    parent_query: Query<&Parent>,
 ) {
-    for (mut weapon, transform, velocity) in query.iter_mut() {
+    for (entity, mut weapon, transform) in query.iter_mut() {
         if weapon.is_firing {
             weapon.seconds_since_previous -= time.delta_seconds();
             if weapon.seconds_since_previous > 0.0 {
@@ -148,11 +146,20 @@ fn weapon_fire(
         }
 
         if weapon.is_firing {
+            // resolve own velocity from parent if any
+            let mut gun_velocity = Vec3::ZERO;
+            for parent in parent_query.iter_ancestors(entity) {
+                if let Ok(velocity) = velocity_query.get(parent) {
+                    gun_velocity = velocity.linvel;
+                    break;
+                }
+            }
+
             projectile.spawn(
                 &mut commands,
-                transform.translation,
+                transform.translation(),
                 transform.forward().into(),
-                velocity.linvel,
+                gun_velocity,
             );
         }
     }
