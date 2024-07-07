@@ -12,30 +12,29 @@ opt-level = 3
 [dependencies]
 # Keep only what is really used to keep binary small and compilation fast
 bevy = { version = "0.13", default-features = false, features = [
-  # Core 3D features
-  "bevy_core_pipeline",
-  "bevy_pbr",
-  "bevy_render",
+  # Core features
   "bevy_winit",
   "multi-threaded",
+  # 3D rendering
+  "bevy_pbr",
+  "tonemapping_luts", # for correct material loading and tonemapping
   # For skybox compressed texture
   "ktx2",
   "zstd",
   "png",
   # For gltf assets
   "bevy_gltf",
-  "tonemapping_luts", # for correct material loading
-
+  # Platform support
   "webgl2", # For wasm target support
   "wayland", # For linux support
-  # Might be used in the future
-  # "bevy_audio",
-  # "bevy_text",
-  # "bevy_ui",
-  # "default_font",
 ] }
 bevy-inspector-egui = "0.23"
 bevy_asset_loader = { version = "0.20", features = ["standard_dynamic_assets"] }
 # Check performance with "simd-stable" or "parallel"
 bevy_rapier3d = { version = "0.25", default-features = false, features = ["dim3", "debug-render-3d"]}
 # bevy_common_assets = "0.7" # for loading assets from yaml/json
+tracing = { version = "0.1", optional = true }
+
+[features]
+# Enables tracing via [tracy](https://github.com/wolfpld/tracy)
+trace = ["bevy/trace_tracy", "dep:tracing"]
