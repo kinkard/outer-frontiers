@@ -132,6 +132,7 @@ struct ModelColliders(HashMap<AssetId<Scene>, Collider>);
 
 /// Extracts hulls (meshed with `_hull` or `_hull_<some number>` suffix),
 /// builds rapier Collider from them and stores in the `ModelColliders`
+#[cfg_attr(feature = "trace", tracing::instrument(skip_all))]
 fn extract_model_colliders(
     mut scenes: ResMut<Assets<Scene>>,
     meshes: Res<Assets<Mesh>>,
