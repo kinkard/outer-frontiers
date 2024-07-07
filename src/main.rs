@@ -123,7 +123,7 @@ fn setup(
                 .filter_map(|e| e.get::<Name>().map(|name| (e.id(), name)))
                 .for_each(|(entity, name)| {
                     if name.starts_with("barrel.") {
-                        commands.entity(entity).insert(weapon::Weapon::new(20.0));
+                        commands.entity(entity).insert(weapon::Weapon::new(7.0));
                     }
                 });
         }))
@@ -140,6 +140,17 @@ fn setup(
         }))
         .insert(RigidBody::Dynamic)
         .insert(Restitution::coefficient(0.7))
+        .insert(assets::SceneSetup::new(|commands, entities| {
+            entities
+                .iter()
+                .filter(|e| !e.contains::<Handle<Mesh>>()) // Skip GLTF Mesh entities
+                .filter_map(|e| e.get::<Name>().map(|name| (e.id(), name)))
+                .for_each(|(entity, name)| {
+                    if name.starts_with("barrel.") {
+                        commands.entity(entity).insert(weapon::Weapon::new(3.5));
+                    }
+                });
+        }))
         .insert(Name::new("Infiltrator"));
 
     commands

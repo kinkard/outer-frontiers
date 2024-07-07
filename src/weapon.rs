@@ -77,14 +77,14 @@ impl Projectile {
                 },
                 ..default()
             },
-            self.collider.clone(),
-            Velocity {
-                linvel: velocity + direction * self.speed,
-                ..default()
-            },
             self.lifetime.clone(),
             // Change to RigidBody::Dynamic if projectile should be affected by gravity or other forces
             RigidBody::KinematicVelocityBased,
+            Velocity {
+                linvel: velocity,
+                ..default()
+            },
+            self.collider.clone(),
             // Use intersection graph with Sensor for simplicity
             // Remove Sensor if contact graph is needed
             Sensor,
@@ -108,17 +108,18 @@ fn setup_projectile(
 #[derive(Component)]
 pub(crate) struct Weapon {
     is_firing: bool,
-    // Delay between shots in seconds
-    fire_timeout: f32,
-    seconds_since_previous: f32,
+    /// Interval between shots in seconds
+    shot_interval: f32,
+    /// Weapon cooldown timer in seconds. Cannot be negative outside of [`weapon_fire`] system.
+    cooldown: f32,
 }
 
 impl Weapon {
     pub(crate) fn new(rate_of_fire: f32) -> Self {
         Self {
             is_firing: false,
-            fire_timeout: 1.0 / rate_of_fire,
-            seconds_since_previous: 0.0,
+            shot_interval: 1.0 / rate_of_fire,
+            cooldown: 0.0,
         }
     }
 
@@ -136,31 +137,39 @@ fn weapon_fire(
     parent_query: Query<&Parent>,
 ) {
     for (entity, mut weapon, transform) in query.iter_mut() {
-        if weapon.is_firing {
-            weapon.seconds_since_previous -= time.delta_seconds();
-            if weapon.seconds_since_previous > 0.0 {
-                weapon.is_firing = false;
-            } else {
-                weapon.seconds_since_previous = weapon.fire_timeout;
-            }
+        if weapon.cooldown > 0.0 {
+            // Tick cooldown only if greater than zero to avoid negative value on first frame of firing.
+            // Negative values than are used to calculate offset time for projectile spawn to keep constant fire rate.
+            weapon.cooldown -= time.delta_seconds();
         }
+        if !weapon.is_firing {
+            weapon.cooldown = weapon.cooldown.max(0.0);
+            continue;
+        }
+        // `weapon.is_firing` should be set each frame by input system
+        weapon.is_firing = false;
 
-        if weapon.is_firing {
-            // resolve own velocity from parent if any
-            let mut gun_velocity = Vec3::ZERO;
-            for parent in parent_query.iter_ancestors(entity) {
-                if let Ok(velocity) = velocity_query.get(parent) {
-                    gun_velocity = velocity.linvel;
-                    break;
-                }
-            }
+        // resolve own velocity from parent if any
+        let gun_velocity = parent_query
+            .iter_ancestors(entity)
+            .filter_map(|parent| velocity_query.get(parent).ok())
+            .map(|velocity| velocity.linvel)
+            .next()
+            .unwrap_or(Vec3::ZERO);
 
-            projectile.spawn(
-                &mut commands,
-                transform.translation(),
-                transform.forward().into(),
-                gun_velocity,
-            );
+        while weapon.cooldown <= 0.0 {
+            // time in the past from the current frame when projectile should be spawned
+            let offset_time = -weapon.cooldown;
+            weapon.cooldown += weapon.shot_interval;
+
+            let direction = transform.forward();
+            // relative velocity of projectile to gun
+            let rel_velocity = direction * projectile.speed;
+            // move projectile spawn point forward to handle case when multiple projectiles are spawned
+            let position = transform.translation() + rel_velocity * offset_time;
+            let velocity = rel_velocity + gun_velocity;
+
+            projectile.spawn(&mut commands, position, direction, velocity);
         }
     }
 }
