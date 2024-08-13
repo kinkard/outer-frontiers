@@ -162,7 +162,7 @@ fn weapon_fire(
             let offset_time = -weapon.cooldown;
             weapon.cooldown += weapon.shot_interval;
 
-            let direction = transform.forward();
+            let direction = transform.forward().as_vec3();
             let velocity = direction * projectile.speed + gun_velocity;
             // move projectile spawn point forward to handle case when multiple projectiles are spawned
             let position = transform.translation() + velocity * offset_time;

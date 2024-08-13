@@ -20,10 +20,8 @@ fn main() {
         .add_plugins(WorldInspectorPlugin::new())
         .add_plugins(RapierPhysicsPlugin::<NoUserData>::default())
         .add_plugins(RapierDebugRenderPlugin::default())
-        .insert_resource(RapierConfiguration {
-            gravity: Vec3::ZERO, // disable gravity at all
-            ..default()
-        })
+        // set length_unit to disable automatic gravity
+        .insert_resource(RapierConfiguration::new(0.0))
         .add_plugins(assets::AssetsPlugin)
         .add_plugins(weapon::WeaponPlugin)
         .init_state::<GameStates>()
@@ -34,7 +32,7 @@ fn main() {
             (player_controller, weapon_fire, animate_light_direction)
                 .run_if(in_state(GameStates::Next)),
         )
-        .add_systems(Update, bevy::window::close_on_esc)
+        .add_systems(Update, close_on_esc)
         .run();
 }
 
@@ -53,7 +51,7 @@ fn setup_light(mut commands: Commands) {
 
     // environment map, use an appropriate colour and brightness to match
     commands.insert_resource(AmbientLight {
-        color: Color::rgb_u8(210, 220, 240),
+        color: Color::srgb_u8(210, 220, 240),
         brightness: 700.0,
     });
 }
@@ -276,6 +274,22 @@ fn weapon_fire(
     if keys.pressed(config.key_primary_weapon_fire) {
         for mut weapon in &mut weapon {
             weapon.fire();
+        }
+    }
+}
+
+fn close_on_esc(
+    mut commands: Commands,
+    focused_windows: Query<(Entity, &Window)>,
+    input: Res<ButtonInput<KeyCode>>,
+) {
+    for (window, focus) in focused_windows.iter() {
+        if !focus.focused {
+            continue;
+        }
+
+        if input.just_pressed(KeyCode::Escape) {
+            commands.entity(window).despawn();
         }
     }
 }

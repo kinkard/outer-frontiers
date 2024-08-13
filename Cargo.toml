@@ -11,10 +11,10 @@ opt-level = 3
 
 [dependencies]
 # Keep only what is really used to keep binary small and compilation fast
-bevy = { version = "0.13", default-features = false, features = [
+bevy = { version = "0.14.1", default-features = false, features = [
   # Core features
   "bevy_winit",
-  "multi-threaded",
+  "multi_threaded",
   # 3D rendering
   "bevy_pbr",
   "tonemapping_luts", # for correct material loading and tonemapping
@@ -28,10 +28,10 @@ bevy = { version = "0.13", default-features = false, features = [
   "webgl2", # For wasm target support
   "wayland", # For linux support
 ] }
-bevy-inspector-egui = "0.23"
-bevy_asset_loader = { version = "0.20", features = ["standard_dynamic_assets"] }
+bevy-inspector-egui = "0.25"
+bevy_asset_loader = { version = "0.21", features = ["standard_dynamic_assets"] }
 # Check performance with "simd-stable" or "parallel"
-bevy_rapier3d = { version = "0.25", default-features = false, features = ["dim3", "debug-render-3d"]}
+bevy_rapier3d = { version = "0.27", default-features = false, features = ["dim3", "debug-render-3d"]}
 # bevy_common_assets = "0.7" # for loading assets from yaml/json
 tracing = { version = "0.1", optional = true }
 
