@@ -20,10 +20,7 @@ fn main() {
         .add_plugins(WorldInspectorPlugin::new())
         .add_plugins(RapierPhysicsPlugin::<NoUserData>::default())
         .add_plugins(RapierDebugRenderPlugin::default())
-        .insert_resource(RapierConfiguration {
-            gravity: Vec3::ZERO, // disable gravity at all
-            ..default()
-        })
+        .insert_resource(RapierConfiguration::new(0.0)) // disable gravity at all
         .add_plugins(assets::AssetsPlugin)
         .add_plugins(weapon::WeaponPlugin)
         .init_state::<GameStates>()
@@ -34,7 +31,6 @@ fn main() {
             (player_controller, weapon_fire, animate_light_direction)
                 .run_if(in_state(GameStates::Next)),
         )
-        .add_systems(Update, bevy::window::close_on_esc)
         .run();
 }
 
@@ -53,7 +49,7 @@ fn setup_light(mut commands: Commands) {
 
     // environment map, use an appropriate colour and brightness to match
     commands.insert_resource(AmbientLight {
-        color: Color::rgb_u8(210, 220, 240),
+        color: Color::srgb_u8(210, 220, 240),
         brightness: 700.0,
     });
 }

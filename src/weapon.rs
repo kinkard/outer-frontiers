@@ -169,7 +169,7 @@ fn weapon_fire(
             let position = transform.translation() + rel_velocity * offset_time;
             let velocity = rel_velocity + gun_velocity;
 
-            projectile.spawn(&mut commands, position, direction, velocity);
+            projectile.spawn(&mut commands, position, direction.into(), velocity);
         }
     }
 }
