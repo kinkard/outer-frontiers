@@ -1,0 +1,25 @@
+FROM rust:slim as builder
+
+# Dependencies for some crates
+RUN apt-get update && apt-get install -y --no-install-recommends \
+  pkg-config libwayland-dev
+
+RUN rustup component add rustfmt clippy
+
+WORKDIR /usr/src/app
+
+# First build a dummy target to cache dependencies in a separate Docker layer
+COPY Cargo.toml Cargo.lock ./
+RUN mkdir src && echo 'fn main() { println!("Dummy image called!"); }' > src/main.rs
+RUN cargo build && cargo clippy -- -Dwarnings
+
+COPY src ./src
+# Update modified attribute as otherwise cargo won't rebuild anything
+RUN touch -a -m ./src/main.rs
+
+# Check formatting before building to avoid unnecessary rebuilds
+RUN cargo fmt --all -- --check
+
+RUN cargo clippy -- -Dwarnings
+
+RUN cargo test
