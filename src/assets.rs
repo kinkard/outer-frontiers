@@ -209,7 +209,7 @@ fn set_model_collider(
     }
 }
 
-/// Component to attach setup function that will be invoked once scene is loaded.
+/// Component to attach a setup function that will be invoked once scene is loaded.
 /// Inspired by https://github.com/nicopap/bevy-scene-hook but with a bit different approach.
 ///
 /// Example:
@@ -236,6 +236,7 @@ fn set_model_collider(
 ///             });
 ///     }));
 /// ```
+#[allow(clippy::type_complexity)]
 #[derive(Component)]
 pub(crate) struct SceneSetup(Box<dyn Fn(&mut Commands, &[EntityRef]) + Send + Sync + 'static>);
 
