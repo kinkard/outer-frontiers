@@ -23,7 +23,7 @@ struct Lifetime(f32);
 
 fn lifetime(mut commands: Commands, time: Res<Time>, mut query: Query<(Entity, &mut Lifetime)>) {
     for (entity, mut lifetime) in query.iter_mut() {
-        lifetime.0 -= time.delta_seconds();
+        lifetime.0 -= time.delta_secs();
         if lifetime.0 <= 0.0 {
             commands.entity(entity).despawn_recursive();
         }
@@ -66,16 +66,13 @@ impl Projectile {
 
     fn spawn(&self, commands: &mut Commands, position: Vec3, direction: Vec3, velocity: Vec3) {
         commands.spawn((
-            PbrBundle {
-                mesh: self.mesh.clone(),
-                material: self.material.clone(),
-                transform: Transform {
-                    translation: position,
-                    // `Collider::capsule_y` and `shape::Capsule` are both aligned with Vec3::Y axis
-                    rotation: Quat::from_rotation_arc(Vec3::Y, direction),
-                    scale: Vec3::ONE,
-                },
-                ..default()
+            Mesh3d(self.mesh.clone()),
+            MeshMaterial3d(self.material.clone()),
+            Transform {
+                translation: position,
+                // `Collider::capsule_y` and `shape::Capsule` are both aligned with Vec3::Y axis
+                rotation: Quat::from_rotation_arc(Vec3::Y, direction),
+                scale: Vec3::ONE,
             },
             self.lifetime.clone(),
             // Change to RigidBody::Dynamic if projectile should be affected by gravity or other forces
@@ -140,7 +137,7 @@ fn weapon_fire(
         if weapon.cooldown > 0.0 {
             // Tick cooldown only if greater than zero to avoid negative value on first frame of firing.
             // Negative values than are used to calculate offset time for projectile spawn to keep constant fire rate.
-            weapon.cooldown -= time.delta_seconds();
+            weapon.cooldown -= time.delta_secs();
         }
         if !weapon.is_firing {
             weapon.cooldown = weapon.cooldown.max(0.0);

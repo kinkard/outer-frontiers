@@ -10,28 +10,49 @@ edition = "2021"
 opt-level = 3
 
 [dependencies]
-# Keep only what is really used to keep binary small and compilation fast
-bevy = { version = "0.14", default-features = false, features = [
-  # Core features
-  "bevy_winit",
-  "multi_threaded",
-  # 3D rendering
-  "bevy_pbr",
-  "tonemapping_luts", # for correct material loading and tonemapping
-  # For skybox compressed texture
-  "ktx2",
-  "zstd",
-  "png",
-  # For gltf assets
+# Keep only what is really used to keep binary small and compilation fast.
+# Note: Some features are still enabled by other dependencies, but they will
+# not be accessible from the code if not explicitly enabled.
+bevy = { version = "0.15", default-features = false, features = [
+  # "android-game-activity",
+  # "android_shared_stdcxx",
+  "animation",
+  # "bevy_asset",
+  # "bevy_audio",
+  # "bevy_color",
+  # "bevy_core_pipeline",
+  # "bevy_gilrs",
+  # "bevy_gizmos",
   "bevy_gltf",
-  # Platform support
+  # "bevy_mesh_picking_backend",
+  # "bevy_pbr",
+  # "bevy_picking",
+  # "bevy_render",
+  # "bevy_scene",
+  # "bevy_sprite",
+  # "bevy_sprite_picking_backend",
+  # "bevy_state",
+  # "bevy_text",
+  # "bevy_ui",
+  # "bevy_ui_picking_backend",
+  "bevy_window",
+  "bevy_winit",
+  # "custom_cursor",
+  # "default_font",
+  # "hdr",
+  "multi_threaded",
+  "png",
+  # "smaa_luts",
+  # "sysinfo_plugin",
+  "tonemapping_luts", # for correct material loading and tonemapping
+  # "vorbis",
   "webgl2", # For wasm target support
-  "wayland", # For linux support
+  "wayland", # For linux support on CI
 ] }
-bevy-inspector-egui = "0.27"
-bevy_asset_loader = { version = "0.21", features = ["standard_dynamic_assets"] }
+bevy-inspector-egui = { version = "0.28", default-features = false, features = ["bevy_pbr", "bevy_image", "bevy_render"] }
+bevy_asset_loader = { version = "0.22", features = ["standard_dynamic_assets"] }
 # Check performance with "simd-stable" or "parallel"
-bevy_rapier3d = { version = "0.27", default-features = false, features = ["dim3", "debug-render-3d"]}
+bevy_rapier3d = { version = "0.28", default-features = false, features = ["dim3", "debug-render-3d"]}
 # bevy_common_assets = "0.7" # for loading assets from yaml/json
 tracing = { version = "0.1", optional = true }
 

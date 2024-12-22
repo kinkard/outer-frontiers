@@ -20,12 +20,14 @@ fn main() {
         .add_plugins(WorldInspectorPlugin::new())
         .add_plugins(RapierPhysicsPlugin::<NoUserData>::default())
         .add_plugins(RapierDebugRenderPlugin::default())
-        .insert_resource(RapierConfiguration::new(0.0)) // disable gravity at all
         .add_plugins(assets::AssetsPlugin)
         .add_plugins(weapon::WeaponPlugin)
         .init_state::<GameStates>()
         .init_resource::<ControlsConfig>()
-        .add_systems(OnEnter(GameStates::Next), (setup_light, setup))
+        .add_systems(
+            OnEnter(GameStates::Next),
+            (setup_light, setup_rapier, setup),
+        )
         .add_systems(
             Update,
             (player_controller, weapon_fire, animate_light_direction)
@@ -37,21 +39,23 @@ fn main() {
 // todo: replace by EnvironmentMapLight
 fn setup_light(mut commands: Commands) {
     // directional 'sun' light
-    commands.spawn(DirectionalLightBundle {
-        directional_light: DirectionalLight {
+    commands.spawn((
+        DirectionalLight {
             illuminance: 32000.0,
             ..default()
         },
-        transform: Transform::from_xyz(0.0, 2.0, 0.0)
-            .with_rotation(Quat::from_rotation_x(-PI / 4.)),
-        ..default()
-    });
+        Transform::from_xyz(0.0, 2.0, 0.0).with_rotation(Quat::from_rotation_x(-PI / 4.)),
+    ));
 
     // environment map, use an appropriate colour and brightness to match
     commands.insert_resource(AmbientLight {
         color: Color::srgb_u8(210, 220, 240),
         brightness: 700.0,
     });
+}
+
+fn setup_rapier(mut rapier_config: Query<&mut RapierConfiguration>) {
+    rapier_config.single_mut().gravity = Vec3::ZERO;
 }
 
 /// Marker component for the player spaceship
@@ -64,25 +68,19 @@ fn setup(
     environment: Res<assets::Environment>,
 ) {
     commands
-        .spawn(SceneBundle {
-            scene: models.zenith_station.clone(),
-            ..default()
-        })
-        .insert(TransformBundle::from(Transform {
+        .spawn(SceneRoot(models.zenith_station.clone()))
+        .insert(Transform {
             translation: -200.0 * Vec3::Z,
             ..default()
-        }))
+        })
         .insert(Name::new("Zenith station"));
 
     commands
-        .spawn(SceneBundle {
-            scene: models.praetor.clone(),
-            ..default()
-        })
-        .insert(TransformBundle::from(Transform {
+        .spawn(SceneRoot(models.praetor.clone()))
+        .insert(Transform {
             translation: Vec3::new(5.0, 5.0, -20.0),
             ..default()
-        }))
+        })
         .insert(Player)
         .insert(RigidBody::Dynamic)
         .insert(Restitution::coefficient(0.7))
@@ -94,14 +92,13 @@ fn setup(
         .insert(Velocity::default())
         .with_children(|parent| {
             parent.spawn((
-                Camera3dBundle {
-                    // slightly behind and above the spaceship
-                    transform: Transform::from_xyz(0.0, 3.0, 20.0),
-                    ..default()
-                },
+                Camera3d::default(),
+                // slightly behind and above the spaceship
+                Transform::from_xyz(0.0, 3.0, 20.0),
                 Skybox {
                     image: environment.skybox_image.clone(),
                     brightness: 1500.0,
+                    ..default()
                 },
                 // todo: specify environment light according to the skybox
                 // see the scene_viewer example for more details:
@@ -115,7 +112,7 @@ fn setup(
         .insert(assets::SceneSetup::new(|commands, entities| {
             entities
                 .iter()
-                .filter(|e| !e.contains::<Handle<Mesh>>()) // Skip GLTF Mesh entities
+                .filter(|e| !e.contains::<Mesh3d>()) // Skip GLTF Mesh entities
                 .filter_map(|e| e.get::<Name>().map(|name| (e.id(), name)))
                 .for_each(|(entity, name)| {
                     if name.starts_with("barrel.") {
@@ -126,20 +123,17 @@ fn setup(
         .insert(Name::new("Praetor"));
 
     commands
-        .spawn(SceneBundle {
-            scene: models.infiltrator.clone(),
-            ..default()
-        })
-        .insert(TransformBundle::from(Transform {
+        .spawn(SceneRoot(models.infiltrator.clone()))
+        .insert(Transform {
             translation: Vec3::new(-5.0, 5.0, -20.0),
             ..default()
-        }))
+        })
         .insert(RigidBody::Dynamic)
         .insert(Restitution::coefficient(0.7))
         .insert(assets::SceneSetup::new(|commands, entities| {
             entities
                 .iter()
-                .filter(|e| !e.contains::<Handle<Mesh>>()) // Skip GLTF Mesh entities
+                .filter(|e| !e.contains::<Mesh3d>()) // Skip GLTF Mesh entities
                 .filter_map(|e| e.get::<Name>().map(|name| (e.id(), name)))
                 .for_each(|(entity, name)| {
                     if name.starts_with("barrel.") {
@@ -150,14 +144,11 @@ fn setup(
         .insert(Name::new("Infiltrator"));
 
     commands
-        .spawn(SceneBundle {
-            scene: models.dragoon.clone(),
-            ..default()
-        })
-        .insert(TransformBundle::from(Transform {
+        .spawn(SceneRoot(models.dragoon.clone()))
+        .insert(Transform {
             translation: Vec3::new(0.0, 5.0, 150.0),
             ..default()
-        }))
+        })
         .insert(Name::new("Dragoon"));
 }
 
@@ -166,7 +157,7 @@ fn animate_light_direction(
     mut query: Query<&mut Transform, With<DirectionalLight>>,
 ) {
     for mut transform in &mut query {
-        transform.rotate_y(time.delta_seconds() * 0.5);
+        transform.rotate_y(time.delta_secs() * 0.5);
     }
 }
 

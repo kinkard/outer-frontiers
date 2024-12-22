@@ -1,11 +1,11 @@
 use bevy::{
     ecs::world::Command,
+    image::CompressedImageFormats,
     prelude::*,
     render::{
         mesh::VertexAttributeValues,
         render_resource::{TextureViewDescriptor, TextureViewDimension},
         renderer::RenderDevice,
-        texture::CompressedImageFormats,
     },
     scene::SceneInstance,
     utils::HashMap,
@@ -144,7 +144,7 @@ fn extract_model_colliders(
             .world
             // There are two entities in the scene for each hull - mesh itself and parent Node.
             // Transforms are stored inside Node (which is parent to the Mesh)
-            .query_filtered::<(Entity, &Name), Without<Handle<Mesh>>>()
+            .query_filtered::<(Entity, &Name), Without<Mesh3d>>()
             .iter(&scene.world)
             .filter_map(|(entity, name)| {
                 if name.ends_with("_hull") || name.contains("_hull_") {
@@ -166,7 +166,7 @@ fn extract_model_colliders(
             .flat_map(|(affine, children)| {
                 children
                     .iter()
-                    .filter_map(|entity| scene.world.get::<Handle<Mesh>>(*entity))
+                    .filter_map(|entity| scene.world.get::<Mesh3d>(*entity))
                     .map(|handle| meshes.get(handle).expect("broken mesh handle"))
                     .filter_map(extract_mesh_vertices)
                     // Transform Mesh points into world coordinates
@@ -191,7 +191,7 @@ fn extract_model_colliders(
         for entity in hulls {
             // Don't forget to clean parent-child relations
             RemoveParent { child: entity }.apply(&mut scene.world);
-            DespawnRecursive { entity }.apply(&mut scene.world);
+            DespawnRecursive { entity, warn: true }.apply(&mut scene.world);
         }
     }
 }
@@ -200,7 +200,7 @@ fn extract_model_colliders(
 fn set_model_collider(
     mut commands: Commands,
     colliders: Res<ModelColliders>,
-    spawned_scenes: Query<(Entity, &Handle<Scene>), Changed<Handle<Scene>>>,
+    spawned_scenes: Query<(Entity, &SceneRoot), Changed<SceneRoot>>,
 ) {
     for (entity, scene) in spawned_scenes.iter() {
         if let Some(collider) = colliders.0.get(&scene.id()) {
@@ -249,7 +249,7 @@ impl SceneSetup {
 }
 
 fn setup_scene(
-    scenes: Query<(Entity, &Handle<Scene>, &SceneInstance, &SceneSetup)>,
+    scenes: Query<(Entity, &SceneRoot, &SceneInstance, &SceneSetup)>,
     server: Res<AssetServer>,
     scene_manager: Res<SceneSpawner>,
     world: &World,
@@ -260,7 +260,7 @@ fn setup_scene(
             let instance_entities = scene_manager.iter_instance_entities(**instance);
             let entities: Vec<_> = std::iter::once(entity)
                 .chain(instance_entities)
-                .filter_map(|e| world.get_entity(e))
+                .filter_map(|e| world.get_entity(e).ok())
                 // storing result of filtering allows us to handle lifetime problems and
                 // workaround `Box<dyn Iterator<Item = EntityRef>>` in function type declaration
                 .collect();
